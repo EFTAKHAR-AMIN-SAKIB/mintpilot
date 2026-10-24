@@ -190,7 +190,7 @@ export async function parseUserIntent(
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const modelName = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const modelName = process.env.GEMINI_MODEL || "gemini-flash-latest";
 
     const response = await ai.models.generateContent({
       model: modelName,
