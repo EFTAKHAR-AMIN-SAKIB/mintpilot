@@ -50,15 +50,41 @@ export class BawCliProvider implements IBinanceAgenticWalletProvider {
     }
   }
 
+  async getWalletAddress(): Promise<string | undefined> {
+    try {
+      const res = await this.runBawCommand(["wallet", "address", "--json"]);
+      if (res && res.data && Array.isArray(res.data.addresses)) {
+        // Find BSC address (binanceChainId: "56" or chainName: "BSC")
+        const bsc = res.data.addresses.find(
+          (a: any) => String(a.binanceChainId) === "56" || a.chainName?.toUpperCase() === "BSC"
+        );
+        if (bsc && bsc.address) return bsc.address;
+        // Or find any 0x EVM address
+        const evm = res.data.addresses.find((a: any) => a.address?.startsWith("0x"));
+        if (evm && evm.address) return evm.address;
+        return res.data.addresses[0]?.address;
+      }
+    } catch {
+      // ignore
+    }
+    return undefined;
+  }
+
   async getWalletStatus(): Promise<WalletStatusResponse> {
     try {
       const res = await this.runBawCommand(["wallet", "status", "--json"]);
       if (res && res.data) {
         const rawStatus = res.data.status || "UNCONNECTED";
         const isConnected = rawStatus === "CONNECTED";
+        let address = res.data.address;
+
+        if (isConnected && !address) {
+          address = await this.getWalletAddress();
+        }
+
         return {
           status: isConnected ? "CONNECTED" : "UNCONNECTED",
-          address: res.data.address,
+          address,
           binanceChainId: res.data.chainId || "56",
           isDevelopmentProvider: false,
           details: res.data,
@@ -105,24 +131,65 @@ export class BawCliProvider implements IBinanceAgenticWalletProvider {
 
   async verifyPairing(qrCodeId: string): Promise<VerifyPairingResponse> {
     try {
+      // First check if wallet is already connected
+      const current = await this.getWalletStatus();
+      if (current.status === "CONNECTED" && current.address) {
+        return {
+          status: "CONNECTED",
+          address: current.address,
+          binanceChainId: current.binanceChainId || "56",
+        };
+      }
+
       const res = await this.runBawCommand(["auth", "verify", "--qrCodeId", qrCodeId, "--json"]);
       if (res && res.data) {
         if (res.data.status === "CONFIRMED" || res.data.status === "CONNECTED") {
+          const address = res.data.address || (await this.getWalletAddress());
           return {
             status: "CONNECTED",
-            address: res.data.address,
+            address,
             binanceChainId: res.data.chainId || "56",
           };
         }
         if (res.data.status === "EXPIRED") {
+          // Double check status before declaring expired
+          const recheck = await this.getWalletStatus();
+          if (recheck.status === "CONNECTED" && recheck.address) {
+            return {
+              status: "CONNECTED",
+              address: recheck.address,
+              binanceChainId: recheck.binanceChainId || "56",
+            };
+          }
           return { status: "EXPIRED", message: "QR code expired" };
         }
         if (res.data.status === "REJECTED") {
           return { status: "REJECTED", message: "Pairing was rejected in Binance app" };
         }
       }
+
+      // Check again if status became CONNECTED
+      const fallback = await this.getWalletStatus();
+      if (fallback.status === "CONNECTED" && fallback.address) {
+        return {
+          status: "CONNECTED",
+          address: fallback.address,
+          binanceChainId: fallback.binanceChainId || "56",
+        };
+      }
+
       return { status: "PENDING" };
     } catch (err: unknown) {
+      // If error (such as QR code consumed), check wallet status
+      const fallback = await this.getWalletStatus().catch(() => null);
+      if (fallback && fallback.status === "CONNECTED" && fallback.address) {
+        return {
+          status: "CONNECTED",
+          address: fallback.address,
+          binanceChainId: fallback.binanceChainId || "56",
+        };
+      }
+
       const msg = err instanceof Error ? err.message : String(err);
       if (msg.includes("expired") || msg.includes("AUTH_REJECTED")) {
         return { status: "EXPIRED", message: "QR pairing expired" };
@@ -143,14 +210,14 @@ export class BawCliProvider implements IBinanceAgenticWalletProvider {
     try {
       const res = await this.runBawCommand(["wallet", "settings", "--json"]);
       const devModeEnabled = res?.data?.devMode?.enabled === true;
-      let dailySpendingLimitUsd: string | undefined;
-      let remainingQuotaUsd: string | undefined;
+      let dailySpendingLimitUsd = res?.data?.dailyLimit ? String(res.data.dailyLimit) : undefined;
+      let remainingQuotaUsd = res?.data?.quotaLeft ? String(res.data.quotaLeft) : undefined;
 
       try {
         const quotaRes = await this.runBawCommand(["wallet", "left-quota", "--json"]);
         if (quotaRes?.data) {
-          dailySpendingLimitUsd = quotaRes.data.dailySpendingLimit;
-          remainingQuotaUsd = quotaRes.data.remainingQuota;
+          if (quotaRes.data.dailySpendingLimit) dailySpendingLimitUsd = quotaRes.data.dailySpendingLimit;
+          if (quotaRes.data.remainingQuota) remainingQuotaUsd = quotaRes.data.remainingQuota;
         }
       } catch {
         // quota command optional

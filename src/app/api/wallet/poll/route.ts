@@ -15,7 +15,19 @@ export async function POST(request: NextRequest) {
     }
 
     const provider = getWalletProvider();
-    const verifyResult = await provider.verifyPairing(qrCodeId);
+    let verifyResult = await provider.verifyPairing(qrCodeId);
+
+    // Fallback check: if verifyPairing didn't return CONNECTED, check getWalletStatus directly
+    if (verifyResult.status !== "CONNECTED") {
+      const statusCheck = await provider.getWalletStatus().catch(() => null);
+      if (statusCheck && statusCheck.status === "CONNECTED" && statusCheck.address) {
+        verifyResult = {
+          status: "CONNECTED",
+          address: statusCheck.address,
+          binanceChainId: statusCheck.binanceChainId || "56",
+        };
+      }
+    }
 
     if (verifyResult.status === "CONNECTED") {
       const defaultSettings = { devModeEnabled: false, dailySpendingLimitUsd: undefined, remainingQuotaUsd: undefined };
