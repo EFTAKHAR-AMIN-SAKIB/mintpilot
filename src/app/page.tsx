@@ -179,11 +179,28 @@ export default function MintPilotPage() {
     setIsProcessing(true);
     setProcessingStatus("Analyzing request with Gemini...");
 
-    // Natural language confirmation check: if preview is pending and user confirms verbally
-    if (activePreview && (promptText.toLowerCase().includes("yes") || promptText.toLowerCase().includes("confirm") || promptText.toLowerCase().includes("mint"))) {
+    // Natural language confirmation check: only if the user explicitly says yes/confirm/go ahead without providing a new URL or parameters
+    const lowerPrompt = promptText.toLowerCase().trim();
+    const isExplicitConfirmation =
+      (lowerPrompt === "yes" ||
+        lowerPrompt === "confirm" ||
+        lowerPrompt === "proceed" ||
+        lowerPrompt === "go ahead" ||
+        lowerPrompt === "approve" ||
+        lowerPrompt === "confirm mint" ||
+        lowerPrompt === "yes, go ahead" ||
+        lowerPrompt === "yes go ahead") &&
+      !lowerPrompt.includes("http") &&
+      !lowerPrompt.includes("from");
+
+    if (activePreview && isExplicitConfirmation) {
       handleConfirmExecution();
       return;
     }
+
+    // A new request invalidates any previously pending preview or verification
+    setActivePreview(null);
+    setActiveVerification(null);
 
     try {
       // 2. Parse Intent via Gemini / API
@@ -354,17 +371,6 @@ export default function MintPilotPage() {
     const targetPreview = activePreview;
 
     try {
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ast-executing-${Date.now()}`,
-          sender: "assistant",
-          text: "Your transaction has been submitted. I’m checking for network confirmation.",
-          timestamp: Date.now(),
-          stage: "executing",
-        },
-      ]);
-
       const res = await fetch("/api/transactions/execute", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -402,18 +408,20 @@ export default function MintPilotPage() {
       fetchActivities();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
+      setActivePreview(null);
       setMessages((prev) => [
         ...prev,
         {
           id: `ast-exec-failed-${Date.now()}`,
           sender: "assistant",
-          text: `The transaction did not complete successfully: ${msg}`,
+          text: `The transaction could not be executed: ${msg}\n\nPlease generate a new preview by telling me what you'd like to mint.`,
           timestamp: Date.now(),
           stage: "failed",
         },
       ]);
     } finally {
       setIsProcessing(false);
+      setProcessingStatus("");
     }
   };
 
