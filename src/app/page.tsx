@@ -33,6 +33,7 @@ export default function MintPilotPage() {
   // Conversation & Flow state
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [processingStatus, setProcessingStatus] = useState<string>("");
   const [activeVerification, setActiveVerification] = useState<NFTCollectionCandidate | null>(null);
   const [activePreview, setActivePreview] = useState<TransactionCandidate | null>(null);
   const [activeExecution, setActiveExecution] = useState<ExecutionResult | null>(null);
@@ -176,6 +177,7 @@ export default function MintPilotPage() {
     };
     setMessages((prev) => [...prev, userMsg]);
     setIsProcessing(true);
+    setProcessingStatus("Analyzing request with Gemini...");
 
     // Natural language confirmation check: if preview is pending and user confirms verbally
     if (activePreview && (promptText.toLowerCase().includes("yes") || promptText.toLowerCase().includes("confirm") || promptText.toLowerCase().includes("mint"))) {
@@ -232,16 +234,7 @@ export default function MintPilotPage() {
       }
 
       // Handle Mint NFT: Resolve Collection
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `ast-resolving-${Date.now()}`,
-          sender: "assistant",
-          text: `I’m checking the collection details for "${intent.collectionName || intent.sourceUrl || "your request"}" and looking for its verified contract.`,
-          timestamp: Date.now(),
-          stage: "resolving",
-        },
-      ]);
+      setProcessingStatus(`Inspecting ${intent.sourceUrl || intent.collectionName || "collection"} and verifying BNB Smart Chain...`);
 
       const resolveRes = await fetch("/api/nft/resolve", {
         method: "POST",
@@ -301,6 +294,7 @@ export default function MintPilotPage() {
     }
 
     setIsProcessing(true);
+    setProcessingStatus("Generating preview via Binance Agentic Wallet...");
     try {
       const res = await fetch("/api/transactions/preview", {
         method: "POST",
@@ -356,6 +350,7 @@ export default function MintPilotPage() {
     if (!activePreview || !activePreview.walletRequestId) return;
 
     setIsProcessing(true);
+    setProcessingStatus("Submitting previewed request to Binance Agentic Wallet...");
     const targetPreview = activePreview;
 
     try {
@@ -529,6 +524,15 @@ export default function MintPilotPage() {
                 )}
               </div>
             ))}
+            {isProcessing && (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-apple-surface dark:bg-apple-darkSurface border border-apple-border dark:border-apple-darkBorder text-xs text-apple-secondary dark:text-apple-darkSecondary animate-fade-in shadow-apple w-fit">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-apple-blue opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-apple-blue"></span>
+                </span>
+                <span>{processingStatus || "Analyzing request..."}</span>
+              </div>
+            )}
             <div ref={chatBottomRef} />
           </div>
         )}

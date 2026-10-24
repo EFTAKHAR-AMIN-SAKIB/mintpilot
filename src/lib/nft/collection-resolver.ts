@@ -149,12 +149,23 @@ export async function resolveNFTCollection(input: ResolveCollectionInput): Promi
       }
 
       // Extract Price from page
-      let detectedPrice = input.maximumMintPrice || "0.01";
-      const priceRegex = /(?:mint(?:\s+price)?|cost)[:\s]*([0-9]+(?:\.[0-9]+)?)\s*(?:bnb)?/i;
-      const pagePriceMatch = metadata.rawText.match(priceRegex);
-      if (pagePriceMatch && !input.maximumMintPrice) {
-        detectedPrice = pagePriceMatch[1];
-        sourcesUsed.push(`Published mint price detected from page text: ${detectedPrice} BNB`);
+      let detectedPrice = input.maximumMintPrice !== null && input.maximumMintPrice !== undefined ? input.maximumMintPrice : "0.01";
+      let hasPagePriceMatch = false;
+
+      if (!input.maximumMintPrice) {
+        if (metadata.rawText.toLowerCase().includes("free") || metadata.title.toLowerCase().includes("free")) {
+          detectedPrice = "0";
+          hasPagePriceMatch = true;
+          sourcesUsed.push("Detected free public mint from page");
+        } else {
+          const priceRegex = /(?:mint(?:\s+price)?|cost)[:\s]*([0-9]+(?:\.[0-9]+)?)\s*(?:bnb)?/i;
+          const match = metadata.rawText.match(priceRegex);
+          if (match) {
+            detectedPrice = match[1];
+            hasPagePriceMatch = true;
+            sourcesUsed.push(`Published mint price detected from page text: ${detectedPrice} BNB`);
+          }
+        }
       }
 
       const collectionTitle = metadata.ogTitle || metadata.title || input.collectionName || "Discovered NFT Collection";
@@ -171,7 +182,7 @@ export async function resolveNFTCollection(input: ResolveCollectionInput): Promi
         tokenStandard: "ERC721",
         mintPrice: detectedPrice,
         mintPriceWei: priceWei,
-        mintPriceSource: pagePriceMatch ? "official_website" : (input.maximumMintPrice ? "user_specified" : "unverified"),
+        mintPriceSource: hasPagePriceMatch ? "official_website" : (input.maximumMintPrice ? "user_specified" : "unverified"),
         isVerifiedContract: false,
         isBytecodeContract: true,
         supportedMintFunction: {

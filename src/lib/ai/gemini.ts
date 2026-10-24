@@ -92,10 +92,16 @@ export function parseIntentDeterministic(prompt: string): ParsedIntent {
     quantity = 3;
   }
 
-  // Extract price (e.g., "0.01 BNB", "for 0.05", "0.02bnb")
-  const priceMatch = lower.match(/(?:for|at|price|limit)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:bnb)?/i) ||
-    lower.match(/([0-9]+(?:\.[0-9]+)?)\s*bnb/i);
-  const maximumMintPrice = priceMatch ? priceMatch[1] : null;
+  // Extract price (e.g., "0.01 BNB", "for 0.05", "0.02bnb", "free")
+  let maximumMintPrice: string | null = null;
+  if (lower.includes("free") || lower.includes("0 bnb") || lower.includes("zero bnb")) {
+    maximumMintPrice = "0";
+  } else {
+    const priceMatch =
+      lower.match(/(?:for|at|price|limit)\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)\s*(?:bnb)?/i) ||
+      lower.match(/([0-9]+(?:\.[0-9]+)?)\s*bnb/i);
+    maximumMintPrice = priceMatch ? priceMatch[1] : null;
+  }
 
   // Extract collection name heuristics
   let collectionName: string | null = null;
@@ -190,9 +196,14 @@ export async function parseUserIntent(
 
   try {
     const ai = new GoogleGenAI({ apiKey });
-    const modelName = process.env.GEMINI_MODEL || "gemini-flash-latest";
+    const modelName = process.env.GEMINI_MODEL || "gemini-3.5-flash";
 
-    const response = await ai.models.generateContent({
+    // Set a race timeout of 2500ms to guarantee ultra-fast response even during Google API demand spikes
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Gemini timeout (2.5s limit reached), falling back to fast local parser")), 2500)
+    );
+
+    const generatePromise = ai.models.generateContent({
       model: modelName,
       contents: [
         {
@@ -206,6 +217,8 @@ export async function parseUserIntent(
         temperature: 0.1,
       },
     });
+
+    const response = await Promise.race([generatePromise, timeoutPromise]);
 
     const responseText = typeof response.text === "function" ? (response as any).text() : response.text;
     if (!responseText) {
@@ -222,7 +235,7 @@ export async function parseUserIntent(
     };
   } catch (err: unknown) {
     // Fail safely and use deterministic parser on error
-    console.warn("Gemini API call failed or schema invalid, using deterministic parser:", err);
+    console.warn("Gemini API call skipped or timed out, using instant parser:", (err as Error).message);
     return parseIntentDeterministic(prompt);
   }
 }
