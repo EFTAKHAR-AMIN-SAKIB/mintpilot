@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { CheckCircle2, Clock, AlertTriangle, ExternalLink, RefreshCw, Copy, Check, Sparkles } from "lucide-react";
+import { CheckCircle2, Clock, AlertTriangle, ExternalLink, RefreshCw, Copy, Check, Sparkles, Layers } from "lucide-react";
 import { ExecutionResult, TransactionCandidate } from "@/types";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -11,12 +11,14 @@ interface ExecutionStatusCardProps {
   execution: ExecutionResult;
   preview?: TransactionCandidate;
   onReset: () => void;
+  onViewVault?: () => void;
 }
 
 export const ExecutionStatusCard: React.FC<ExecutionStatusCardProps> = ({
   execution,
   preview,
   onReset,
+  onViewVault,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -141,6 +143,17 @@ export const ExecutionStatusCard: React.FC<ExecutionStatusCardProps> = ({
 
       {/* Action buttons */}
       <div className="flex flex-col sm:flex-row gap-2 justify-end pt-1">
+        {onViewVault && (isConfirmed || Boolean(execution.tokenId)) && (
+          <Button
+            variant="secondary"
+            size="md"
+            onClick={onViewVault}
+            className="bg-blue-600/20 text-blue-400 hover:bg-blue-600/30 border border-blue-500/30"
+          >
+            <Layers className="w-3.5 h-3.5 mr-1" />
+            <span>View in My Vault</span>
+          </Button>
+        )}
         {execution.explorerUrl && (
           <a
             href={execution.explorerUrl}

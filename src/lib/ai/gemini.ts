@@ -143,7 +143,9 @@ export function parseIntentDeterministic(prompt: string): ParsedIntent {
 
   if (!sourceUrl && !contractAddress && !collectionName) {
     missingInformation.push("sourceUrl_or_collection");
-    clarificationQuestion = "Which NFT collection or website would you like to mint from? You can paste a URL (e.g., https://example.com/mint) or contract address.";
+    clarificationQuestion = lower.includes("free")
+      ? "Which free NFT collection would you like to mint? You can name a project like 'Proof of Agent', paste a URL (e.g., https://ptah.trade/poa), or paste a contract address."
+      : "Which NFT collection or website would you like to mint from? You can paste a URL (e.g., https://example.com/mint) or contract address.";
     return {
       intentType: "clarification_needed",
       chain,

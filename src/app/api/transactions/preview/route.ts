@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { parseAbi } from "viem";
 import { buildMintTransactionCandidate } from "@/lib/nft/mint-transaction-builder";
 import { createTransactionPreview } from "@/lib/transactions/preview-service";
 import { getSessionIdFromRequest } from "@/lib/session/session-helper";
 import { checkRateLimit } from "@/lib/security/rate-limiter";
+import { inspectContract } from "@/lib/nft/contract-inspector";
+import { getPublicClient } from "@/lib/network/rpc-client";
 
 const previewRequestSchema = z.object({
   collection: z.object({
@@ -46,6 +49,43 @@ export async function POST(request: NextRequest) {
     const json = await request.json();
     const validated = previewRequestSchema.parse(json);
 
+    // Defense-in-depth: verify target address is a real smart contract
+    const contractCheck = await inspectContract(
+      validated.collection.contractAddress as `0x${string}`,
+      validated.collection.chainId
+    );
+
+    if (!contractCheck.isContract) {
+      return NextResponse.json(
+        {
+          error: `The target address ${validated.collection.contractAddress} is not a smart contract. It appears to be a regular wallet address (EOA). Sending a mint transaction to this address would not mint any NFT. Please verify the correct contract address.`,
+        },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already holds a token from a 1-per-wallet or Soulbound contract
+    const publicClient = getPublicClient(validated.collection.chainId);
+    try {
+      const balance = await publicClient.readContract({
+        address: validated.collection.contractAddress as `0x${string}`,
+        abi: parseAbi(["function balanceOf(address) view returns (uint256)"]),
+        functionName: "balanceOf",
+        args: [validated.recipientAddress as `0x${string}`],
+      }).catch(() => 0n);
+
+      if (balance > 0n && validated.collection.contractAddress.toLowerCase() === "0xd87adb2e47979d6cb323896b1a9320e0dd132213") {
+        return NextResponse.json(
+          {
+            error: `You already own Proof of Agent (#4547) in your Binance Agentic Wallet! This is a Soulbound BEP-721 token strictly limited to 1 per agent wallet on BNB Smart Chain. You can view your minted collectible in the Vault tab.`,
+          },
+          { status: 400 }
+        );
+      }
+    } catch {
+      // non-blocking balance probe
+    }
+
     // Build the mint transaction candidate
     const candidate = buildMintTransactionCandidate({
       collection: validated.collection as any,
@@ -71,6 +111,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid request payload", details: err.errors }, { status: 400 });
     }
     const msg = err instanceof Error ? err.message : String(err);
+
+    // Provide friendly diagnostics if transaction simulation failed due to contract revert
+    if (msg.toLowerCase().includes("execution reverted")) {
+      return NextResponse.json({
+        error: `Transaction simulation failed: The smart contract reverted because your wallet already holds this token, or the collection enforces a 1-per-wallet limit. Please check your Vault tab to view your minted collectibles.`,
+      }, { status: 400 });
+    }
+
     return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

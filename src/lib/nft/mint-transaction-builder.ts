@@ -15,6 +15,13 @@ const COMMON_MINT_ABIS = [
     type: "function",
     name: "mint",
     stateMutability: "payable",
+    inputs: [],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "mint",
+    stateMutability: "payable",
     inputs: [{ name: "to", type: "address" }],
     outputs: [],
   },
@@ -40,6 +47,23 @@ const COMMON_MINT_ABIS = [
     name: "safeMint",
     stateMutability: "payable",
     inputs: [{ name: "to", type: "address" }],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "safeMint",
+    stateMutability: "payable",
+    inputs: [
+      { name: "to", type: "address" },
+      { name: "quantity", type: "uint256" },
+    ],
+    outputs: [],
+  },
+  {
+    type: "function",
+    name: "claim",
+    stateMutability: "payable",
+    inputs: [],
     outputs: [],
   },
 ] as const;
@@ -73,7 +97,14 @@ export function buildMintTransactionCandidate(input: BuildMintCandidateInput): T
   let args: unknown[] = [];
 
   try {
-    if (fnSig === "mint(address)") {
+    if (fnSig === "mint()") {
+      args = [];
+      calldata = encodeFunctionData({
+        abi: COMMON_MINT_ABIS,
+        functionName: "mint",
+        args: [],
+      });
+    } else if (fnSig === "mint(address)") {
       args = [recipientAddress];
       calldata = encodeFunctionData({
         abi: COMMON_MINT_ABIS,
@@ -81,14 +112,14 @@ export function buildMintTransactionCandidate(input: BuildMintCandidateInput): T
         args: [recipientAddress],
       });
     } else if (fnSig === "mint(address,uint256)") {
-      args = [recipientAddress, BigInt(quantity)];
+      args = [recipientAddress, quantity];
       calldata = encodeFunctionData({
         abi: COMMON_MINT_ABIS,
         functionName: "mint",
         args: [recipientAddress, BigInt(quantity)],
       });
     } else if (fnSig === "mint(uint256)") {
-      args = [BigInt(quantity)];
+      args = [quantity];
       calldata = encodeFunctionData({
         abi: COMMON_MINT_ABIS,
         functionName: "mint",
@@ -101,21 +132,46 @@ export function buildMintTransactionCandidate(input: BuildMintCandidateInput): T
         functionName: "safeMint",
         args: [recipientAddress],
       });
-    } else {
-      // Default fallback
-      args = [recipientAddress];
+    } else if (fnSig === "safeMint(address,uint256)") {
+      args = [recipientAddress, quantity];
       calldata = encodeFunctionData({
         abi: COMMON_MINT_ABIS,
-        functionName: "mint",
-        args: [recipientAddress],
+        functionName: "safeMint",
+        args: [recipientAddress, BigInt(quantity)],
       });
+    } else if (fnSig === "claim()") {
+      args = [];
+      calldata = encodeFunctionData({
+        abi: COMMON_MINT_ABIS,
+        functionName: "claim",
+        args: [],
+      });
+    } else {
+      // Default fallback based on whether inputs are declared
+      if (!collection.supportedMintFunction?.inputs || collection.supportedMintFunction.inputs.length === 0) {
+        args = [];
+        calldata = encodeFunctionData({
+          abi: COMMON_MINT_ABIS,
+          functionName: "mint",
+          args: [],
+        });
+      } else {
+        args = [recipientAddress];
+        calldata = encodeFunctionData({
+          abi: COMMON_MINT_ABIS,
+          functionName: "mint",
+          args: [recipientAddress],
+        });
+      }
     }
   } catch (err: unknown) {
     throw new Error(`Failed to encode ABI calldata: ${err instanceof Error ? err.message : String(err)}`);
   }
 
   // Realistic gas estimates for BSC
-  const estimatedGasUnits = 95000n;
+  // Standard NFT mints consume ~140k-220k gas. We set gasLimit to 350,000 gas so contracts with VRF/complex storage never run out of gas.
+  const gasLimitUnits = 350000n;
+  const estimatedGasUnits = 180000n;
   const gasPriceGwei = 3n; // BSC standard base gas price is 3 Gwei
   const gasFeeWei = estimatedGasUnits * (gasPriceGwei * 1000000000n);
   const estimatedGasFeeBnb = (Number(gasFeeWei) / 1e18).toFixed(6);
@@ -144,7 +200,7 @@ export function buildMintTransactionCandidate(input: BuildMintCandidateInput): T
     functionName: fnName,
     functionSignature: fnSig,
     arguments: args,
-    gasLimit: (estimatedGasUnits + 25000n).toString(),
+    gasLimit: gasLimitUnits.toString(),
     estimatedGas: estimatedGasUnits.toString(),
     estimatedGasFeeBnb,
     estimatedTotalBnb,

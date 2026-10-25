@@ -63,6 +63,29 @@ describe("Transaction Handling & Confirmation State Machine", () => {
     expect(candidate.quantity).toBe(3);
   });
 
+  it("should encode calldata 0x1249c58b for zero-argument mint() function", () => {
+    const zeroArgCollection: NFTCollectionCandidate = {
+      ...mockCollection,
+      supportedMintFunction: {
+        name: "mint",
+        signature: "mint()",
+        isPayable: true,
+        inputs: [],
+      },
+    };
+
+    const candidate = buildMintTransactionCandidate({
+      collection: zeroArgCollection,
+      recipientAddress: recipient,
+      fromAddress: recipient,
+      quantity: 1,
+      overridePriceBnb: "0",
+    });
+
+    expect(candidate.calldata).toBe("0x1249c58b");
+    expect(candidate.totalValueWei).toBe("0");
+  });
+
   it("should create a valid preview with wallet requestId", async () => {
     const candidate = buildMintTransactionCandidate({
       collection: mockCollection,

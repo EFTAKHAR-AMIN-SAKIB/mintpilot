@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getWalletProvider } from "@/lib/wallet/factory";
 import { getSessionIdFromRequest } from "@/lib/session/session-helper";
-import { updateSessionWallet } from "@/lib/session/store";
+import { updateSessionWallet, getAgentIdForAddress, setAgentIdForAddress } from "@/lib/session/store";
+import { resolveRegisteredAgentId } from "@/lib/wallet/agent-id-resolver";
 
 export async function POST(request: NextRequest) {
   const sessionId = getSessionIdFromRequest(request);
@@ -33,9 +34,18 @@ export async function POST(request: NextRequest) {
       const defaultSettings = { devModeEnabled: false, dailySpendingLimitUsd: undefined, remainingQuotaUsd: undefined };
       const settings = await provider.getSettings().catch(() => defaultSettings);
 
+      let agentId = (verifyResult as any)?.agentId;
+      if (!agentId && verifyResult.address) {
+        agentId = await resolveRegisteredAgentId(verifyResult.address);
+      }
+      if (verifyResult.address && agentId) {
+        setAgentIdForAddress(verifyResult.address, agentId);
+      }
+
       const updated = updateSessionWallet(sessionId, {
         status: "CONNECTED",
         address: verifyResult.address,
+        agentId: agentId || "forkmaster.ai",
         binanceChainId: verifyResult.binanceChainId || "56",
         isDevMode: settings.devModeEnabled,
         dailySpendingLimit: {

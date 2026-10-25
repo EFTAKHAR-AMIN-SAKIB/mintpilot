@@ -48,20 +48,20 @@ export const ActivityDrawer: React.FC<ActivityDrawerProps> = ({
       />
 
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-md bg-apple-surface dark:bg-apple-darkSurface border-l border-apple-border dark:border-apple-darkBorder shadow-apple-floating flex flex-col">
+        <div className="w-screen max-w-md seer-glass border-l border-[var(--border)] shadow-2xl flex flex-col">
           {/* Header */}
-          <div className="p-4 sm:p-6 border-b border-apple-border/50 dark:border-apple-darkBorder/50 flex items-center justify-between">
+          <div className="p-4 sm:p-6 border-b border-[var(--border)] flex items-center justify-between">
             <div>
-              <h3 className="text-base font-semibold text-apple-text dark:text-apple-darkText">
+              <h3 className="text-base font-bold text-[var(--ink)] tracking-tight">
                 Activity & History
               </h3>
-              <p className="text-xs text-apple-secondary dark:text-apple-darkSecondary">
+              <p className="text-xs text-[var(--muted)]">
                 Live audit trail of session events
               </p>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-full text-apple-secondary hover:text-apple-text hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+              className="p-1.5 rounded-full text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--capsule)] transition-colors"
               aria-label="Close activity drawer"
             >
               <X className="w-4 h-4" />
@@ -69,27 +69,27 @@ export const ActivityDrawer: React.FC<ActivityDrawerProps> = ({
           </div>
 
           {/* Activities list */}
-          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-3">
             {activities.length === 0 ? (
-              <div className="text-center py-12 text-apple-secondary dark:text-apple-darkSecondary text-xs">
+              <div className="text-center py-12 text-[var(--muted)] text-xs">
                 No recent activity in this session yet.
               </div>
             ) : (
               activities.map((act) => (
                 <div
                   key={act.id}
-                  className="p-3.5 rounded-apple-sm bg-apple-subtle dark:bg-apple-darkSubtle border border-apple-border/30 dark:border-apple-darkBorder/30 space-y-1.5 text-xs transition-colors"
+                  className="p-3.5 rounded-2xl bg-[var(--capsule)] border border-[var(--border)] space-y-1.5 text-xs transition-colors"
                 >
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-medium text-apple-text dark:text-apple-darkText">
+                    <div className="flex items-center gap-2 font-medium text-[var(--ink)]">
                       {getActivityIcon(act.type)}
                       <span>{act.title}</span>
                     </div>
-                    <span className="text-[10px] text-apple-secondary dark:text-apple-darkSecondary font-mono">
+                    <span className="text-[10px] text-[var(--muted)] font-mono">
                       {formatTime(act.timestamp)}
                     </span>
                   </div>
-                  <p className="text-[11px] text-apple-secondary dark:text-apple-darkSecondary leading-relaxed">
+                  <p className="text-[11px] text-[var(--muted)] leading-relaxed">
                     {act.description}
                   </p>
                   {act.explorerUrl && (
@@ -97,7 +97,7 @@ export const ActivityDrawer: React.FC<ActivityDrawerProps> = ({
                       href={act.explorerUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-[11px] text-apple-blue hover:underline pt-0.5"
+                      className="inline-flex items-center gap-1 text-[11px] text-[#7d33ff] hover:underline pt-0.5"
                     >
                       <span>View on BscScan</span>
                       <ArrowUpRight className="w-3 h-3" />

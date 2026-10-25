@@ -44,9 +44,25 @@ export class BawCliProvider implements IBinanceAgenticWalletProvider {
       }
       const jsonString = stdout.slice(jsonStart);
       return JSON.parse(jsonString);
-    } catch (err: unknown) {
+    } catch (err: any) {
+      // If baw printed JSON error in stdout despite exiting with code 1
+      if (err?.stdout) {
+        const jsonStart = err.stdout.indexOf("{");
+        if (jsonStart !== -1) {
+          try {
+            const parsed = JSON.parse(err.stdout.slice(jsonStart));
+            if (parsed?.error?.message) {
+              throw new Error(parsed.error.message);
+            }
+          } catch (parseErr: any) {
+            if (parseErr?.message && !parseErr.message.includes("JSON")) {
+              throw parseErr;
+            }
+          }
+        }
+      }
       const message = err instanceof Error ? err.message : String(err);
-      throw new Error(`baw command failed [${args.join(" ")}]: ${message}`);
+      throw new Error(message);
     }
   }
 

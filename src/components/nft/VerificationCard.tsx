@@ -14,6 +14,7 @@ interface VerificationCardProps {
   onConfirmDetails: () => void;
   onRejectDetails: () => void;
   isLoading?: boolean;
+  isPreviewed?: boolean;
 }
 
 export const VerificationCard: React.FC<VerificationCardProps> = ({
@@ -21,6 +22,7 @@ export const VerificationCard: React.FC<VerificationCardProps> = ({
   onConfirmDetails,
   onRejectDetails,
   isLoading,
+  isPreviewed,
 }) => {
   const [copied, setCopied] = useState(false);
 
@@ -89,6 +91,14 @@ export const VerificationCard: React.FC<VerificationCardProps> = ({
         </div>
 
         <div className="flex items-center justify-between py-1 border-b border-apple-border/40 dark:border-apple-darkBorder/40">
+          <span className="text-apple-secondary dark:text-apple-darkSecondary">Contract Verification</span>
+          <span className="inline-flex items-center gap-1 font-medium text-emerald-400">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>On-Chain Bytecode Confirmed</span>
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between py-1 border-b border-apple-border/40 dark:border-apple-darkBorder/40">
           <span className="text-apple-secondary dark:text-apple-darkSecondary">Mint Price</span>
           <div className="text-right">
             <span className="font-semibold text-apple-text dark:text-apple-darkText">
@@ -142,13 +152,14 @@ export const VerificationCard: React.FC<VerificationCardProps> = ({
           Not the right collection
         </Button>
         <Button
-          variant="primary"
+          variant={isPreviewed ? "secondary" : "primary"}
           size="md"
           onClick={onConfirmDetails}
           isLoading={isLoading}
+          disabled={isPreviewed || isLoading}
         >
-          Review mint details
-          <ArrowRight className="w-4 h-4 ml-1" />
+          {isPreviewed ? "Details Reviewed ✓" : "Review mint details"}
+          {!isPreviewed && <ArrowRight className="w-4 h-4 ml-1" />}
         </Button>
       </div>
     </Card>

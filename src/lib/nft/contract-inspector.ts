@@ -37,17 +37,26 @@ export async function inspectContract(
       };
     }
 
-    // Standard candidate mint signatures commonly found on BSC ERC-721
+    // Standard candidate mint signatures commonly found on BSC ERC-721 with 4-byte selectors
     const candidateMintFunctions = [
       {
         name: "mint",
-        signature: "mint(address)",
+        signature: "mint()",
+        selector: "1249c58b",
         isPayable: true,
-        inputs: [{ name: "to", type: "address" }],
+        inputs: [],
+      },
+      {
+        name: "mint",
+        signature: "mint(uint256)",
+        selector: "a0712d68",
+        isPayable: true,
+        inputs: [{ name: "quantity", type: "uint256" }],
       },
       {
         name: "mint",
         signature: "mint(address,uint256)",
+        selector: "40c10f19",
         isPayable: true,
         inputs: [
           { name: "to", type: "address" },
@@ -56,54 +65,99 @@ export async function inspectContract(
       },
       {
         name: "mint",
-        signature: "mint(uint256)",
+        signature: "mint(address)",
+        selector: "6a627842",
         isPayable: true,
-        inputs: [{ name: "quantity", type: "uint256" }],
+        inputs: [{ name: "to", type: "address" }],
       },
       {
         name: "safeMint",
         signature: "safeMint(address)",
+        selector: "40d097c3",
         isPayable: true,
         inputs: [{ name: "to", type: "address" }],
       },
       {
         name: "safeMint",
         signature: "safeMint(address,uint256)",
+        selector: "a1448194",
         isPayable: true,
         inputs: [
           { name: "to", type: "address" },
           { name: "quantity", type: "uint256" },
         ],
       },
+      {
+        name: "claim",
+        signature: "claim()",
+        selector: "4e71d92d",
+        isPayable: true,
+        inputs: [],
+      },
     ];
 
-    // Default to standard mint(address)
-    const supportedMintFunction = candidateMintFunctions[0];
+    // Detect real supported function from contract bytecode
+    const cleanBytecode = bytecode.toLowerCase();
+    const matchedFunction = candidateMintFunctions.find((cand) =>
+      cleanBytecode.includes(cand.selector)
+    );
+
+    const supportedMintFunction = matchedFunction
+      ? {
+          name: matchedFunction.name,
+          signature: matchedFunction.signature,
+          isPayable: matchedFunction.isPayable,
+          inputs: matchedFunction.inputs,
+        }
+      : candidateMintFunctions[0];
+
+    // Read on-chain ERC721 collection name and symbol if available
+    let name = "Verified BSC NFT";
+    let symbol = "NFT";
+    try {
+      const onChainName = await publicClient.readContract({
+        address: contractAddress,
+        abi: [{ type: "function", name: "name", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" }],
+        functionName: "name",
+      });
+      if (typeof onChainName === "string" && onChainName.trim()) {
+        name = onChainName.trim();
+      }
+    } catch {
+      // Name not implemented or reverted
+    }
+
+    try {
+      const onChainSymbol = await publicClient.readContract({
+        address: contractAddress,
+        abi: [{ type: "function", name: "symbol", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" }],
+        functionName: "symbol",
+      });
+      if (typeof onChainSymbol === "string" && onChainSymbol.trim()) {
+        symbol = onChainSymbol.trim();
+      }
+    } catch {
+      // Symbol not implemented or reverted
+    }
 
     return {
       address: contractAddress,
       isContract: true,
       bytecodeLength: bytecode.length,
-      name: "Verified BSC NFT",
-      symbol: "NFT",
+      name,
+      symbol,
       tokenStandard: "ERC721",
       supportedMintFunction,
       warnings,
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    warnings.push(`Network lookup warning: ${msg}`);
+    warnings.push(`Could not verify contract bytecode: ${msg}. Address cannot be confirmed as a smart contract.`);
     return {
       address: contractAddress,
-      isContract: true,
-      bytecodeLength: 500,
-      tokenStandard: "ERC721",
-      supportedMintFunction: {
-        name: "mint",
-        signature: "mint(address)",
-        isPayable: true,
-        inputs: [{ name: "to", type: "address" }],
-      },
+      isContract: false,
+      bytecodeLength: 0,
+      tokenStandard: "Unknown",
       warnings,
     };
   }

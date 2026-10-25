@@ -14,6 +14,7 @@ interface TransactionPreviewCardProps {
   onCancel: () => void;
   isLoading: boolean;
   isDevelopmentMode?: boolean;
+  isExecuted?: boolean;
 }
 
 export const TransactionPreviewCard: React.FC<TransactionPreviewCardProps> = ({
@@ -22,6 +23,7 @@ export const TransactionPreviewCard: React.FC<TransactionPreviewCardProps> = ({
   onCancel,
   isLoading,
   isDevelopmentMode,
+  isExecuted,
 }) => {
   const [copied, setCopied] = useState(false);
   const [showCalldata, setShowCalldata] = useState(false);
@@ -43,7 +45,9 @@ export const TransactionPreviewCard: React.FC<TransactionPreviewCardProps> = ({
             <span className="text-[11px] font-semibold tracking-wider text-apple-blue uppercase">
               Binance Agentic Wallet Preview
             </span>
-            <Badge variant="blue">Awaiting Confirmation</Badge>
+            <Badge variant={isExecuted ? "success" : "blue"}>
+              {isExecuted ? "Transaction Confirmed" : "Awaiting Confirmation"}
+            </Badge>
           </div>
           <h3 className="text-xl font-semibold tracking-tight text-apple-text dark:text-apple-darkText">
             Mint {preview.quantity} {preview.quantity > 1 ? "NFTs" : "NFT"} from {preview.collectionName}
@@ -175,17 +179,20 @@ export const TransactionPreviewCard: React.FC<TransactionPreviewCardProps> = ({
 
       {/* Confirmation Actions */}
       <div className="flex flex-col sm:flex-row gap-2 justify-end pt-2">
-        <Button variant="outline" size="md" onClick={onCancel} disabled={isLoading}>
-          Cancel
-        </Button>
+        {!isExecuted && (
+          <Button variant="outline" size="md" onClick={onCancel} disabled={isLoading}>
+            Cancel
+          </Button>
+        )}
         <Button
-          variant="primary"
+          variant={isExecuted ? "secondary" : "primary"}
           size="lg"
           onClick={onConfirm}
+          disabled={isExecuted || isLoading}
           isLoading={isLoading}
           className="shadow-apple"
         >
-          Confirm & Mint NFT
+          {isExecuted ? "Mint Request Submitted ✓" : "Confirm & Mint NFT"}
         </Button>
       </div>
     </Card>

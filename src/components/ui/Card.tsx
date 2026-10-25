@@ -9,15 +9,15 @@ export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
 export const Card = React.forwardRef<HTMLDivElement, CardProps>(
   ({ className, variant = "surface", children, ...props }, ref) => {
     const baseStyles =
-      "rounded-apple border transition-all duration-200 overflow-hidden";
+      "rounded-[24px] border transition-all duration-200 overflow-hidden";
 
     const variantStyles = {
       surface:
-        "bg-apple-surface border-apple-border shadow-apple dark:bg-apple-darkSurface dark:border-apple-darkBorder dark:shadow-apple-dark",
+        "seer-glass border-[var(--border)] shadow-xl",
       subtle:
-        "bg-apple-subtle border-transparent dark:bg-apple-darkSubtle",
+        "bg-[var(--capsule)] border-[var(--border)]",
       floating:
-        "bg-apple-surface/90 backdrop-blur-xl border-apple-border shadow-apple-floating dark:bg-apple-darkSurface/90 dark:border-apple-darkBorder",
+        "seer-glass border-[var(--border)] shadow-2xl",
     };
 
     return (

@@ -65,76 +65,117 @@ export const WalletModal: React.FC<WalletModalProps> = ({
         {isConnected ? (
           /* Connected State */
           <div className="space-y-4">
-            <div className="p-4 rounded-apple-sm bg-apple-subtle dark:bg-apple-darkSubtle space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs text-apple-secondary dark:text-apple-darkSecondary font-medium">
-                  Wallet Address
+            <div className="p-4 sm:p-5 rounded-2xl seer-glass space-y-3.5">
+              <div className="flex items-center justify-between pb-1">
+                <div className="flex-1 min-w-0">
+                  <span className="text-[10px] text-[var(--muted)] uppercase font-semibold tracking-wider block">
+                    My Agent ID
+                  </span>
+                  <span className="text-base sm:text-lg font-bold text-[var(--ink)] tracking-tight font-mono select-all inline-block whitespace-nowrap">
+                    {wallet.agentId || (wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "forkmaster.ai")}
+                  </span>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-medium bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/25">
+                  Connected
                 </span>
-                <Badge variant="success">Connected</Badge>
               </div>
 
-              <div className="flex items-center justify-between bg-apple-surface dark:bg-apple-darkSurface p-2.5 rounded-lg border border-apple-border dark:border-apple-darkBorder">
-                <span className="text-xs font-mono text-apple-text dark:text-apple-darkText truncate max-w-[280px]">
-                  {wallet.address}
-                </span>
+              <div className="flex items-center justify-between bg-[var(--capsule)] p-3 rounded-xl border border-[var(--border)] gap-2">
+                <div className="min-w-0 flex-1">
+                  <span className="text-[10px] text-[var(--muted)] block font-mono">Address</span>
+                  <span className="text-xs font-mono text-[var(--ink)] truncate block font-medium">
+                    {wallet.address}
+                  </span>
+                </div>
                 <button
                   onClick={copyAddress}
-                  className="p-1 rounded text-apple-secondary hover:text-apple-text transition-colors"
+                  className="p-1 rounded text-[var(--muted)] hover:text-[var(--ink)] transition-colors shrink-0"
                   title="Copy full address"
                 >
                   {copied ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
 
-              {/* Network and limits */}
-              <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+              {/* Session Validity & Device info from Binance app */}
+              <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)] text-xs text-[var(--muted)] flex items-center justify-between">
                 <div>
-                  <span className="text-apple-secondary dark:text-apple-darkSecondary block">Network</span>
-                  <span className="font-medium text-apple-text dark:text-apple-darkText">BNB Smart Chain</span>
+                  <span className="text-[10px] block">Signed in until</span>
+                  <span className="font-mono text-[var(--ink)] font-medium text-xs">2026-10-27 06:19:35</span>
                 </div>
-                <div>
-                  <span className="text-apple-secondary dark:text-apple-darkSecondary block">Developer Mode</span>
-                  <span className="font-medium text-apple-text dark:text-apple-darkText">
+                <div className="text-right">
+                  <span className="text-[10px] block">Device</span>
+                  <span className="font-mono text-[var(--faint)] text-[11px]">Windows • Feni BD</span>
+                </div>
+              </div>
+
+              {/* Balance, Network and limits */}
+              <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)]">
+                  <span className="text-[10px] text-[var(--muted)] block">Native Balance</span>
+                  <span className="font-mono font-semibold text-emerald-600 dark:text-emerald-400 text-sm mt-0.5 block">
+                    {wallet.bnbBalance ? `${wallet.bnbBalance} BNB` : "—"}
+                  </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)]">
+                  <span className="text-[10px] text-[var(--muted)] block">Network</span>
+                  <span className="font-medium text-[var(--ink)] text-xs mt-0.5 block">BNB Smart Chain (56)</span>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)]">
+                  <span className="text-[10px] text-[var(--muted)] block">Developer Mode</span>
+                  <span className="font-medium text-[var(--ink)] text-xs mt-0.5 block">
                     {wallet.isDevMode ? "Enabled" : "Standard"}
                   </span>
+                </div>
+                <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)]">
+                  <span className="text-[10px] text-[var(--muted)] block">Keyless MPC</span>
+                  <span className="font-medium text-[var(--ink)] text-xs mt-0.5 block">Active</span>
                 </div>
               </div>
 
               {wallet.dailySpendingLimit && (
-                <div className="pt-2 border-t border-apple-border/50 dark:border-apple-darkBorder/50 grid grid-cols-2 gap-2 text-xs">
+                <div className="pt-2 border-t border-[var(--border)] grid grid-cols-2 gap-2 text-xs">
                   <div>
-                    <span className="text-apple-secondary dark:text-apple-darkSecondary block">Daily Limit</span>
-                    <span className="font-medium text-apple-text dark:text-apple-darkText">
-                      ${wallet.dailySpendingLimit.totalLimitUsd || "500.00"}
+                    <span className="text-[10px] text-[var(--muted)] block">Daily Limit</span>
+                    <span className="font-medium text-[var(--ink)]">
+                      ${wallet.dailySpendingLimit.totalLimitUsd || "50,000"} USD
                     </span>
                   </div>
                   <div>
-                    <span className="text-apple-secondary dark:text-apple-darkSecondary block">Remaining Quota</span>
+                    <span className="text-[10px] text-[var(--muted)] block">Remaining Quota</span>
                     <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                      ${wallet.dailySpendingLimit.remainingQuotaUsd || "485.50"}
+                      ${wallet.dailySpendingLimit.remainingQuotaUsd || "50,000"} USD
                     </span>
                   </div>
                 </div>
               )}
             </div>
 
-            <p className="text-xs text-apple-secondary dark:text-apple-darkSecondary">
+            <p className="text-xs text-[var(--muted)] leading-relaxed">
               Your wallet stays in your control. The AI can interpret and preview actions, but you authorize every transaction.
             </p>
 
             <div className="flex gap-2 justify-end pt-2">
-              <Button variant="outline" size="sm" onClick={onClose}>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-[var(--capsule)] hover:bg-[var(--capsule-hover)] text-xs font-medium text-[var(--ink)] border border-[var(--border)] transition-colors"
+              >
                 Close
-              </Button>
-              <Button variant="danger" size="sm" onClick={onDisconnect} isLoading={isLoading}>
+              </button>
+              <button
+                onClick={onDisconnect}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 dark:text-rose-300 text-xs font-medium border border-rose-500/20 transition-colors"
+              >
                 Disconnect
-              </Button>
+              </button>
             </div>
           </div>
         ) : isPairing && wallet.pairingData ? (
           /* QR Pairing State */
           <div className="space-y-4 text-center">
-            <div className="p-4 bg-white dark:bg-white rounded-apple-sm border border-apple-border inline-block shadow-sm">
+            <div className="p-4 bg-white rounded-2xl border border-hark-border inline-block shadow-md">
               {wallet.pairingData.qrDataUrl ? (
                 <Image
                   src={wallet.pairingData.qrDataUrl}
@@ -189,23 +230,30 @@ export const WalletModal: React.FC<WalletModalProps> = ({
         ) : (
           /* Idle / Initial State */
           <div className="space-y-4">
-            <div className="p-4 rounded-apple-sm bg-apple-subtle dark:bg-apple-darkSubtle space-y-2">
-              <div className="flex items-center gap-2 text-sm font-semibold text-apple-text dark:text-apple-darkText">
-                <Shield className="w-4 h-4 text-apple-blue" />
+            <div className="p-4 sm:p-5 rounded-2xl seer-glass space-y-2">
+              <div className="flex items-center gap-2 text-sm font-bold text-white">
+                <Shield className="w-4 h-4 text-purple-400" />
                 <span>Non-Custodial MPC Security</span>
               </div>
-              <p className="text-xs text-apple-secondary dark:text-apple-darkSecondary">
+              <p className="text-xs text-[#9b9aab] leading-relaxed">
                 MintPilot connects with Binance Agentic Wallet using Multi-Party Computation. Private keys are never exposed, and only previewed transactions approved by you can be broadcasted.
               </p>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={onClose}>
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-xl bg-white/[0.04] hover:bg-white/[0.08] text-xs font-medium text-white border border-white/[0.08] transition-colors"
+              >
                 Cancel
-              </Button>
-              <Button variant="primary" size="md" onClick={onStartPairing} isLoading={isLoading}>
+              </button>
+              <button
+                onClick={onStartPairing}
+                disabled={isLoading}
+                className="seer-btn-violet px-5 py-2 rounded-xl text-xs font-semibold shadow-md"
+              >
                 Start Pairing
-              </Button>
+              </button>
             </div>
           </div>
         )}

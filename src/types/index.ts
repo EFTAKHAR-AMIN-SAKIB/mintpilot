@@ -24,7 +24,10 @@ export type WalletAuthStatus = "UNCONNECTED" | "PAIRING" | "CONNECTED" | "EXPIRE
 export interface WalletSessionInfo {
   status: WalletAuthStatus;
   address?: string;
+  agentId?: string; // Binance Agent ID e.g. "forkmaster.ai"
+  walletName?: string; // Display label
   binanceChainId?: string;
+  bnbBalance?: string;
   isDevMode?: boolean;
   isDevelopmentProvider?: boolean;
   dailySpendingLimit?: {
@@ -145,6 +148,26 @@ export interface ExecutionResult {
   requiresAppApproval?: boolean;
   gasUsed?: string;
   timestamp: number;
+}
+
+export interface OwnedNFT {
+  tokenId: string;
+  contractAddress: `0x${string}`;
+  collectionName: string;
+  name: string;
+  description?: string;
+  imageUrl?: string;
+  tokenStandard: "ERC721" | "ERC1155";
+  chain: string;
+  chainId: number;
+  txHash?: string;
+  blockNumber?: number;
+  mintedAt?: number;
+  ownerAddress: string;
+  attributes?: Array<{ trait_type: string; value: string | number }>;
+  stats?: Record<string, string | number>;
+  derived?: Record<string, string | number>;
+  explorerUrl?: string;
 }
 
 export interface ActivityItem {

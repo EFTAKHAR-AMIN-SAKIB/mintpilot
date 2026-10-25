@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Compass, ShieldCheck, History, Sun, Moon, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { ShieldCheck, History, Sun, Moon, Sparkles } from "lucide-react";
 import { WalletSessionInfo } from "@/types";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -36,8 +37,13 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
         {/* Brand */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-apple-blue flex items-center justify-center text-white shadow-sm">
-            <Compass className="w-4 h-4 stroke-[2.2]" />
+          <div className="relative w-8 h-8 rounded-full overflow-hidden shadow-sm shrink-0 border border-apple-border/60">
+            <Image
+              src="/logo/mintpilot-icon-1024.png"
+              alt="MintPilot"
+              fill
+              className="object-cover"
+            />
           </div>
           <div className="flex flex-col">
             <div className="flex items-center gap-1.5">

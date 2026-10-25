@@ -15,15 +15,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     const variantStyles = {
       primary:
-        "bg-apple-blue text-white hover:bg-apple-blueHover shadow-sm dark:bg-[#0071e3] dark:hover:bg-[#0077ed]",
+        "seer-btn-violet font-semibold shadow-md",
       secondary:
-        "bg-[#e8e8ed] text-apple-text hover:bg-[#dedee3] dark:bg-apple-darkSubtle dark:text-apple-darkText dark:hover:bg-[#3a3a3c]",
+        "bg-[var(--capsule)] text-[var(--ink)] hover:bg-[var(--capsule-hover)] border border-[var(--border)]",
       outline:
-        "border border-apple-border text-apple-text hover:bg-apple-subtle dark:border-apple-darkBorder dark:text-apple-darkText dark:hover:bg-apple-darkSubtle",
+        "border border-[var(--border)] text-[var(--ink)] hover:bg-[var(--capsule)]",
       ghost:
-        "text-apple-text hover:bg-black/5 dark:text-apple-darkText dark:hover:bg-white/10",
+        "text-[var(--muted)] hover:text-[var(--ink)] hover:bg-[var(--capsule)]",
       danger:
-        "bg-apple-red text-white hover:bg-red-600 shadow-sm",
+        "bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/25 hover:bg-rose-500/25 shadow-sm",
     };
 
     const sizeStyles = {
