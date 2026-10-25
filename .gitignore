@@ -32,3 +32,6 @@ next-env.d.ts
 
 # Local runtime data
 .data/
+
+.vercel
+.env*
