@@ -45,9 +45,10 @@ export async function POST(request: NextRequest) {
       const updated = updateSessionWallet(sessionId, {
         status: "CONNECTED",
         address: verifyResult.address,
-        agentId: agentId || "forkmaster.ai",
+        agentId: agentId || "eftakhar.ai",
         binanceChainId: verifyResult.binanceChainId || "56",
         isDevMode: settings.devModeEnabled,
+        isDevelopmentProvider: provider.isDevelopmentMode,
         dailySpendingLimit: {
           totalLimitUsd: settings.dailySpendingLimitUsd,
           remainingQuotaUsd: settings.remainingQuotaUsd,

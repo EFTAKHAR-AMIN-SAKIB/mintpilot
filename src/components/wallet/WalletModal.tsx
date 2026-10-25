@@ -127,9 +127,10 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               </div>
               <div className="grid grid-cols-2 gap-2 text-xs">
                 <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)]">
-                  <span className="text-[10px] text-[var(--muted)] block">Developer Mode</span>
-                  <span className="font-medium text-[var(--ink)] text-xs mt-0.5 block">
-                    {wallet.isDevMode ? "Enabled" : "Standard"}
+                  <span className="text-[10px] text-[var(--muted)] block">Wallet Mode</span>
+                  <span className="font-medium text-emerald-600 dark:text-emerald-400 text-xs mt-0.5 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                    {wallet.isDevMode ? "Dev Sandbox" : "Live Mainnet"}
                   </span>
                 </div>
                 <div className="p-2.5 rounded-xl bg-[var(--capsule)] border border-[var(--border)]">

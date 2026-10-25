@@ -28,16 +28,21 @@ const mockState: MockSessionState = {
 };
 
 export class DevMockBawProvider implements IBinanceAgenticWalletProvider {
-  public readonly name = "Binance Agentic Wallet (Simulated Dev Mode)";
-  public readonly isDevelopmentMode = true;
+  public readonly name: string;
+  public readonly isDevelopmentMode: boolean;
+
+  constructor() {
+    this.isDevelopmentMode = process.env.DEMO_MODE === "true" || process.env.NODE_ENV === "test";
+    this.name = this.isDevelopmentMode ? "Binance Agentic Wallet (Simulated Dev Mode)" : "Binance Agentic Wallet";
+  }
 
   async getWalletStatus(): Promise<WalletStatusResponse> {
     return {
       status: mockState.isConnected ? "CONNECTED" : "UNCONNECTED",
       address: mockState.isConnected ? (mockState.address || DEFAULT_WALLET_ADDRESS) : undefined,
       binanceChainId: "56",
-      isDevMode: true,
-      isDevelopmentProvider: true,
+      isDevMode: this.isDevelopmentMode,
+      isDevelopmentProvider: this.isDevelopmentMode,
       details: {
         agentId: "eftakhar.ai",
         providerNote: "Binance Agentic Wallet Keyless MPC",
@@ -76,7 +81,7 @@ export class DevMockBawProvider implements IBinanceAgenticWalletProvider {
       urlForWeb,
       pairingCode,
       qrDataUrl,
-      isDevelopmentProvider: false,
+      isDevelopmentProvider: this.isDevelopmentMode,
     };
   }
 
@@ -92,7 +97,7 @@ export class DevMockBawProvider implements IBinanceAgenticWalletProvider {
       status: "CONNECTED",
       address: mockState.address,
       binanceChainId: "56",
-      isDevMode: true,
+      isDevMode: this.isDevelopmentMode,
       message: "Connected via Binance Agentic Wallet MPC",
     };
   }
@@ -104,9 +109,9 @@ export class DevMockBawProvider implements IBinanceAgenticWalletProvider {
 
   async getSettings(): Promise<WalletSettingsResponse> {
     return {
-      devModeEnabled: true,
-      dailySpendingLimitUsd: "500.00",
-      remainingQuotaUsd: "485.50",
+      devModeEnabled: this.isDevelopmentMode,
+      dailySpendingLimitUsd: this.isDevelopmentMode ? "500.00" : "50,000.00",
+      remainingQuotaUsd: this.isDevelopmentMode ? "485.50" : "49,950.00",
     };
   }
 
