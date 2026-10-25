@@ -59,7 +59,7 @@ export const AgenticDeck: React.FC<AgenticDeckProps> = ({
   const [copied, setCopied] = useState(false);
   const [copiedAgentId, setCopiedAgentId] = useState(false);
   const [isSessionDetailsOpen, setIsSessionDetailsOpen] = useState(false);
-  const fallbackAgentId = wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "forkmaster.ai";
+  const fallbackAgentId = wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "yourname.ai";
   const agentId = wallet.agentId || propAgentId || fallbackAgentId;
 
   const copyAgentId = () => {

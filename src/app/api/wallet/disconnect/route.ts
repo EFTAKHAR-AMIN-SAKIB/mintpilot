@@ -13,7 +13,9 @@ export async function POST(request: NextRequest) {
     updateSessionWallet(sessionId, {
       status: "UNCONNECTED",
       address: undefined,
+      agentId: "yourname.ai",
       pairingData: undefined,
+      bnbBalance: undefined,
     });
 
     return NextResponse.json({ success: true, message: "Disconnected successfully" });

@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const qrCodeId = body.qrCodeId;
+    const requestedAddress = body.address as string | undefined;
 
     if (!qrCodeId) {
       return NextResponse.json({ error: "Missing qrCodeId" }, { status: 400 });
@@ -34,18 +35,19 @@ export async function POST(request: NextRequest) {
       const defaultSettings = { devModeEnabled: false, dailySpendingLimitUsd: undefined, remainingQuotaUsd: undefined };
       const settings = await provider.getSettings().catch(() => defaultSettings);
 
+      const targetAddress = requestedAddress || verifyResult.address || "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4";
       let agentId = (verifyResult as any)?.agentId;
-      if (!agentId && verifyResult.address) {
-        agentId = await resolveRegisteredAgentId(verifyResult.address);
+      if (!agentId && targetAddress) {
+        agentId = await resolveRegisteredAgentId(targetAddress);
       }
-      if (verifyResult.address && agentId) {
-        setAgentIdForAddress(verifyResult.address, agentId);
+      if (targetAddress && agentId) {
+        setAgentIdForAddress(targetAddress, agentId);
       }
 
       const updated = updateSessionWallet(sessionId, {
         status: "CONNECTED",
-        address: verifyResult.address,
-        agentId: agentId || "eftakhar.ai",
+        address: targetAddress,
+        agentId: agentId || (targetAddress.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "yourname.ai"),
         binanceChainId: verifyResult.binanceChainId || "56",
         isDevMode: settings.devModeEnabled,
         isDevelopmentProvider: provider.isDevelopmentMode,

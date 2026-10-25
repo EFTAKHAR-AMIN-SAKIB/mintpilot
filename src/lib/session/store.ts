@@ -114,7 +114,7 @@ if (!globalThis.__mintpilot_agent_id_map) {
 }
 
 export function getAgentIdForAddress(address?: string): string {
-  if (!address) return "forkmaster.ai";
+  if (!address) return "yourname.ai";
   const key = address.toLowerCase();
   if (agentIdStore.has(key)) {
     return agentIdStore.get(key)!;
@@ -154,6 +154,7 @@ export function getOrCreateSession(sessionId: string): ServerSessionData {
       sessionId,
       walletInfo: {
         status: "UNCONNECTED",
+        agentId: "yourname.ai",
       },
       activities: [],
       createdAt: now,

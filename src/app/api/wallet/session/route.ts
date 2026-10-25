@@ -13,57 +13,47 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
 
-  const provider = getWalletProvider();
+  const session = getOrCreateSession(sessionId);
 
-  try {
-    const status = await provider.getWalletStatus();
-    const defaultSettings = { devModeEnabled: false, dailySpendingLimitUsd: undefined, remainingQuotaUsd: undefined };
-    const settings = await provider.getSettings().catch(() => defaultSettings);
-
-    let bnbBalance: string | undefined;
-    if (status.status === "CONNECTED" && status.address) {
-      try {
-        const client = getPublicClient(status.binanceChainId ? Number(status.binanceChainId) : 56);
-        const balWei = await client.getBalance({ address: status.address as `0x${string}` });
-        bnbBalance = (Number(balWei) / 1e18).toFixed(4);
-      } catch {
-        // non-blocking
-      }
-    }
-
-    let agentId = (status.details as any)?.agentId;
-    if (!agentId && status.address) {
-      agentId = await resolveRegisteredAgentId(status.address);
-      setAgentIdForAddress(status.address, agentId);
-    } else if (status.address && agentId) {
-      setAgentIdForAddress(status.address, agentId);
-    }
-
-    const updated = updateSessionWallet(sessionId, {
-      status: status.status,
-      address: status.address,
-      agentId: agentId || "forkmaster.ai",
-      binanceChainId: status.binanceChainId,
-      bnbBalance,
-      isDevMode: settings.devModeEnabled,
-      isDevelopmentProvider: provider.isDevelopmentMode,
-      dailySpendingLimit: {
-        totalLimitUsd: settings.dailySpendingLimitUsd,
-        remainingQuotaUsd: settings.remainingQuotaUsd,
-        currency: "USD",
-      },
-    });
-
+  // If this session is not connected, return UNCONNECTED state scoped to this session
+  if (session.walletInfo.status !== "CONNECTED" || !session.walletInfo.address) {
     return NextResponse.json({
       success: true,
-      wallet: updated.walletInfo,
-      providerName: provider.name,
-      isDevelopmentMode: provider.isDevelopmentMode,
+      wallet: {
+        status: session.walletInfo.status || "UNCONNECTED",
+        agentId: session.walletInfo.agentId || "yourname.ai",
+        isDevMode: false,
+        isDevelopmentProvider: false,
+        pairingData: session.walletInfo.pairingData,
+      },
+      providerName: "Binance Agentic Wallet",
+      isDevelopmentMode: false,
     });
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return NextResponse.json({ success: false, error: msg }, { status: 500 });
   }
+
+  // If connected, query latest BNB balance on BNB Smart Chain
+  let bnbBalance: string | undefined = session.walletInfo.bnbBalance;
+  if (session.walletInfo.address) {
+    try {
+      const client = getPublicClient(56);
+      const balWei = await client.getBalance({ address: session.walletInfo.address as `0x${string}` });
+      bnbBalance = (Number(balWei) / 1e18).toFixed(4);
+    } catch {
+      // non-blocking
+    }
+  }
+
+  const updated = updateSessionWallet(sessionId, {
+    bnbBalance,
+    agentId: session.walletInfo.agentId || "yourname.ai",
+  });
+
+  return NextResponse.json({
+    success: true,
+    wallet: updated.walletInfo,
+    providerName: "Binance Agentic Wallet",
+    isDevelopmentMode: false,
+  });
 }
 
 export async function POST(request: NextRequest) {

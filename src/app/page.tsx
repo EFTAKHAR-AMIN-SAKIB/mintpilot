@@ -337,15 +337,40 @@ export default function MintPilotPage() {
     }
   };
 
+  // Connect by address or agent ID
+  const handleConnectAddress = async (address: string, agentId?: string) => {
+    setIsWalletLoading(true);
+    setWalletError(null);
+    try {
+      const res = await apiFetch("/api/wallet/connect", {
+        method: "POST",
+        body: JSON.stringify({ address, agentId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success && data.wallet) {
+        setWallet(data.wallet);
+        setIsWalletModalOpen(false);
+        fetchActivities();
+        fetchNFTs();
+      } else {
+        setWalletError(data.error || "Failed to connect wallet.");
+      }
+    } catch {
+      setWalletError("Network error while connecting wallet.");
+    } finally {
+      setIsWalletLoading(false);
+    }
+  };
+
   // Disconnect
   const handleDisconnect = async () => {
     setIsWalletLoading(true);
     try {
       await apiFetch("/api/wallet/disconnect", { method: "POST" });
-      setWallet({ status: "UNCONNECTED" });
+      setWallet({ status: "UNCONNECTED", agentId: "yourname.ai" });
+      setNfts([]);
       setIsWalletModalOpen(false);
       fetchActivities();
-      fetchNFTs();
     } finally {
       setIsWalletLoading(false);
     }
@@ -663,7 +688,7 @@ export default function MintPilotPage() {
       <div className="hidden lg:flex z-10 border-r border-[var(--border)] overflow-y-auto">
         <AgenticDeck
           wallet={wallet}
-          agentId={wallet.agentId || (wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "forkmaster.ai")}
+          agentId={wallet.agentId || (wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "yourname.ai")}
           onOpenWalletModal={() => setIsWalletModalOpen(true)}
           onOpenActivity={() => setActiveTab("activity")}
           onOpenVault={() => setActiveTab("vault")}
@@ -696,7 +721,7 @@ export default function MintPilotPage() {
             </div>
             <AgenticDeck
               wallet={wallet}
-              agentId={wallet.agentId || (wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "forkmaster.ai")}
+              agentId={wallet.agentId || (wallet.address?.toLowerCase() === "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4" ? "eftakhar.ai" : "yourname.ai")}
               onOpenWalletModal={() => {
                 setIsMobileDeckOpen(false);
                 setIsWalletModalOpen(true);
@@ -979,6 +1004,7 @@ export default function MintPilotPage() {
         wallet={wallet}
         onStartPairing={handleStartPairing}
         onConfirmPairing={handleConfirmPairing}
+        onConnectAddress={handleConnectAddress}
         onDisconnect={handleDisconnect}
         isLoading={isWalletLoading}
         error={walletError}
