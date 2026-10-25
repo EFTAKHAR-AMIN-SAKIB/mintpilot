@@ -13,8 +13,10 @@ interface WalletModalProps {
   onClose: () => void;
   wallet: WalletSessionInfo;
   onStartPairing: () => Promise<void>;
+  onConfirmPairing?: () => Promise<void>;
   onDisconnect: () => Promise<void>;
   isLoading?: boolean;
+  error?: string | null;
 }
 
 export const WalletModal: React.FC<WalletModalProps> = ({
@@ -22,8 +24,10 @@ export const WalletModal: React.FC<WalletModalProps> = ({
   onClose,
   wallet,
   onStartPairing,
+  onConfirmPairing,
   onDisconnect,
   isLoading,
+  error,
 }) => {
   const [copied, setCopied] = useState(false);
   const isConnected = wallet.status === "CONNECTED";
@@ -214,22 +218,46 @@ export const WalletModal: React.FC<WalletModalProps> = ({
             </div>
 
             <div className="flex items-center justify-center gap-2 text-xs text-apple-secondary dark:text-apple-darkSecondary pt-2">
-              <RefreshCw className="w-3.5 h-3.5 animate-spin text-apple-blue" />
+              <RefreshCw className="w-3.5 h-3.5 animate-spin text-purple-400" />
               <span>Waiting for confirmation in Binance App...</span>
             </div>
 
-            <div className="flex justify-center gap-2 pt-2">
-              <Button variant="outline" size="sm" onClick={onStartPairing} isLoading={isLoading}>
-                Refresh QR
-              </Button>
-              <Button variant="secondary" size="sm" onClick={onClose}>
-                Cancel
-              </Button>
+            <div className="flex flex-col gap-2 pt-2">
+              {onConfirmPairing && (
+                <button
+                  onClick={onConfirmPairing}
+                  disabled={isLoading}
+                  className="seer-btn-violet w-full py-2.5 rounded-xl text-xs font-semibold shadow-md flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <Check className="w-3.5 h-3.5 text-emerald-400" />
+                  )}
+                  <span>Confirm & Connect Session</span>
+                </button>
+              )}
+
+              <div className="flex justify-center gap-2">
+                <Button variant="outline" size="sm" onClick={onStartPairing} isLoading={isLoading}>
+                  Refresh QR
+                </Button>
+                <Button variant="secondary" size="sm" onClick={onClose}>
+                  Cancel
+                </Button>
+              </div>
             </div>
           </div>
         ) : (
           /* Idle / Initial State */
           <div className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
             <div className="p-4 sm:p-5 rounded-2xl seer-glass space-y-2">
               <div className="flex items-center gap-2 text-sm font-bold text-white">
                 <Shield className="w-4 h-4 text-purple-400" />
@@ -250,9 +278,16 @@ export const WalletModal: React.FC<WalletModalProps> = ({
               <button
                 onClick={onStartPairing}
                 disabled={isLoading}
-                className="seer-btn-violet px-5 py-2 rounded-xl text-xs font-semibold shadow-md"
+                className="seer-btn-violet px-5 py-2.5 rounded-xl text-xs font-semibold shadow-md flex items-center justify-center gap-2 min-w-[130px]"
               >
-                Start Pairing
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Connecting...</span>
+                  </>
+                ) : (
+                  <span>Start Pairing</span>
+                )}
               </button>
             </div>
           </div>

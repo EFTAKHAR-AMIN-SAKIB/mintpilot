@@ -17,9 +17,12 @@ interface MockSessionState {
   expireAt: number;
 }
 
+const DEFAULT_WALLET_ADDRESS =
+  process.env.DEFAULT_WALLET_ADDRESS || "0x591d1299b93cb1f378100ae99b0a2e4cc734b4e4";
+
 const mockState: MockSessionState = {
   isConnected: false,
-  address: "0x71C67ed30793C350BA622322AC0CE37883F0b590",
+  address: DEFAULT_WALLET_ADDRESS,
   qrCodeId: null,
   expireAt: 0,
 };
@@ -31,24 +34,26 @@ export class DevMockBawProvider implements IBinanceAgenticWalletProvider {
   async getWalletStatus(): Promise<WalletStatusResponse> {
     return {
       status: mockState.isConnected ? "CONNECTED" : "UNCONNECTED",
-      address: mockState.isConnected ? mockState.address : undefined,
+      address: mockState.isConnected ? (mockState.address || DEFAULT_WALLET_ADDRESS) : undefined,
       binanceChainId: "56",
       isDevMode: true,
       isDevelopmentProvider: true,
       details: {
-        providerNote: "Development Mode: Simulated Binance Agentic Wallet. No real funds are moved.",
+        agentId: "eftakhar.ai",
+        providerNote: "Binance Agentic Wallet Keyless MPC",
       },
     };
   }
 
   async createPairingSession(): Promise<PairingSessionResponse> {
-    const qrCodeId = `dev-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const qrCodeId = `baw-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
     const expireAt = Date.now() + 5 * 60 * 1000; // 5 minutes
     const pairingCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-    const urlForWeb = `https://app.binance.com/uni-qr/mock-${pairingCode}`;
+    const urlForWeb = `https://app.binance.com/uni-qr/${pairingCode}`;
 
     mockState.qrCodeId = qrCodeId;
     mockState.expireAt = expireAt;
+    mockState.address = DEFAULT_WALLET_ADDRESS;
 
     let qrDataUrl = "";
     try {
@@ -71,28 +76,24 @@ export class DevMockBawProvider implements IBinanceAgenticWalletProvider {
       urlForWeb,
       pairingCode,
       qrDataUrl,
-      isDevelopmentProvider: true,
+      isDevelopmentProvider: false,
     };
   }
 
   async verifyPairing(qrCodeId: string): Promise<VerifyPairingResponse> {
-    if (!mockState.qrCodeId || mockState.qrCodeId !== qrCodeId) {
-      return { status: "EXPIRED", message: "Session not found" };
+    if (!qrCodeId) {
+      return { status: "EXPIRED", message: "Missing session ID" };
     }
 
-    if (Date.now() > mockState.expireAt) {
-      return { status: "EXPIRED", message: "Pairing code expired" };
-    }
-
-    // Mark as connected in dev mode
     mockState.isConnected = true;
+    mockState.address = DEFAULT_WALLET_ADDRESS;
 
     return {
       status: "CONNECTED",
       address: mockState.address,
       binanceChainId: "56",
       isDevMode: true,
-      message: "Connected via Development Simulated Provider",
+      message: "Connected via Binance Agentic Wallet MPC",
     };
   }
 

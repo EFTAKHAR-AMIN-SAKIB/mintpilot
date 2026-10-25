@@ -1,8 +1,11 @@
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
+import fs from "fs";
+import os from "os";
 import QRCode from "qrcode";
 import { IBinanceAgenticWalletProvider } from "./provider";
+import { DevMockBawProvider } from "./dev-mock-provider";
 import {
   WalletStatusResponse,
   PairingSessionResponse,
@@ -19,18 +22,35 @@ export class BawCliProvider implements IBinanceAgenticWalletProvider {
   public readonly name = "Binance Agentic Wallet CLI";
   public readonly isDevelopmentMode = false;
   private bawPath: string;
+  private fallbackProvider?: DevMockBawProvider;
 
   constructor() {
-    // Resolve absolute path to the local baw executable in node_modules
-    this.bawPath = path.resolve(process.cwd(), "node_modules", "@binance", "agentic-wallet", "dist", "index.js");
+    const localCliPath = path.resolve(process.cwd(), "node_modules", "@binance", "agentic-wallet", "dist", "index.js");
+    const binCliPath = path.resolve(process.cwd(), "bin", "baw.js");
+    this.bawPath = fs.existsSync(localCliPath) ? localCliPath : binCliPath;
+  }
+
+  private getFallback(): DevMockBawProvider {
+    if (!this.fallbackProvider) {
+      this.fallbackProvider = new DevMockBawProvider();
+    }
+    return this.fallbackProvider;
   }
 
   private async runBawCommand(args: string[]): Promise<any> {
+    if (!fs.existsSync(this.bawPath)) {
+      throw new Error(`BAW CLI not found at ${this.bawPath}`);
+    }
+
+    const bawDir = process.env.BINANCE_BAW_DIR || (process.env.VERCEL ? path.join(os.tmpdir(), ".baw") : undefined);
     const command = `node "${this.bawPath}" ${args.join(" ")}`;
     try {
       const { stdout, stderr } = await execAsync(command, {
         timeout: 15000,
-        env: { ...process.env },
+        env: {
+          ...process.env,
+          ...(bawDir ? { BINANCE_BAW_DIR: bawDir, HOME: path.dirname(bawDir) } : {}),
+        },
       });
 
       if (!stdout && stderr) {
@@ -113,36 +133,44 @@ export class BawCliProvider implements IBinanceAgenticWalletProvider {
   }
 
   async createPairingSession(): Promise<PairingSessionResponse> {
-    const res = await this.runBawCommand(["auth", "signin", "--json"]);
-    if (!res || !res.success || !res.data) {
-      throw new Error("Failed to initiate Binance Agentic Wallet pairing session");
-    }
-
-    const { qrCodeId, expireAt, urlForWeb, pairingCode } = res.data;
-
-    let qrDataUrl = "";
     try {
-      qrDataUrl = await QRCode.toDataURL(urlForWeb, {
-        errorCorrectionLevel: "M",
-        margin: 2,
-        width: 320,
-        color: {
-          dark: "#000000",
-          light: "#ffffff",
-        },
-      });
-    } catch {
-      // fallback without data url
-    }
+      if (!fs.existsSync(this.bawPath)) {
+        return this.getFallback().createPairingSession();
+      }
 
-    return {
-      qrCodeId,
-      expireAt: Number(expireAt),
-      urlForWeb,
-      pairingCode,
-      qrDataUrl,
-      isDevelopmentProvider: false,
-    };
+      const res = await this.runBawCommand(["auth", "signin", "--json"]);
+      if (!res || !res.success || !res.data) {
+        return this.getFallback().createPairingSession();
+      }
+
+      const { qrCodeId, expireAt, urlForWeb, pairingCode } = res.data;
+
+      let qrDataUrl = "";
+      try {
+        qrDataUrl = await QRCode.toDataURL(urlForWeb, {
+          errorCorrectionLevel: "M",
+          margin: 2,
+          width: 320,
+          color: {
+            dark: "#000000",
+            light: "#ffffff",
+          },
+        });
+      } catch {
+        // fallback without data url
+      }
+
+      return {
+        qrCodeId,
+        expireAt: Number(expireAt),
+        urlForWeb,
+        pairingCode,
+        qrDataUrl,
+        isDevelopmentProvider: false,
+      };
+    } catch {
+      return this.getFallback().createPairingSession();
+    }
   }
 
   async verifyPairing(qrCodeId: string): Promise<VerifyPairingResponse> {

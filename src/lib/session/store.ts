@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import os from "os";
 import {
   TransactionCandidate,
   ExecutionResult,
@@ -40,7 +41,10 @@ if (!globalThis.__mintpilot_preview_cache) {
   globalThis.__mintpilot_preview_cache = previewCache;
 }
 
-const NFT_STORE_FILE = path.join(process.cwd(), ".data", "nft_store.json");
+const dataDir = process.env.VERCEL
+  ? path.join(os.tmpdir(), "mintpilot_data")
+  : path.join(process.cwd(), ".data");
+const NFT_STORE_FILE = path.join(dataDir, "nft_store.json");
 
 function loadPersistedNFTs(): void {
   try {

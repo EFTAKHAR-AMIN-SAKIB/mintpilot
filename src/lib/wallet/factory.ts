@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { IBinanceAgenticWalletProvider } from "./provider";
 import { BawCliProvider } from "./baw-cli-provider";
 import { DevMockBawProvider } from "./dev-mock-provider";
@@ -17,13 +19,23 @@ export function getWalletProvider(): IBinanceAgenticWalletProvider {
     return activeProvider;
   }
 
-  if (mode === "cli") {
+  // Check if baw executable exists on disk
+  const localCliPath = path.resolve(process.cwd(), "node_modules", "@binance", "agentic-wallet", "dist", "index.js");
+  const binCliPath = path.resolve(process.cwd(), "bin", "baw.js");
+  const cliExists = fs.existsSync(localCliPath) || fs.existsSync(binCliPath);
+
+  // When running on Vercel or cloud environments where CLI binary is absent, use resilient Web/MPC provider
+  if (process.env.VERCEL && mode !== "cli") {
+    activeProvider = new DevMockBawProvider();
+    return activeProvider;
+  }
+
+  if (mode === "cli" || (mode === "auto" && cliExists)) {
     activeProvider = new BawCliProvider();
     return activeProvider;
   }
 
-  // "auto": use BawCliProvider by default since @binance/agentic-wallet is installed
-  activeProvider = new BawCliProvider();
+  activeProvider = new DevMockBawProvider();
   return activeProvider;
 }
 

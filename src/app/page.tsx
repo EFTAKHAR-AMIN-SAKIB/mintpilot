@@ -96,6 +96,7 @@ export default function MintPilotPage() {
   const [isNftsLoading, setIsNftsLoading] = useState(false);
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [isWalletLoading, setIsWalletLoading] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
 
   // Conversation & Flow state
   const [messages, setMessages] = useState<ConversationMessage[]>([]);
@@ -287,19 +288,50 @@ export default function MintPilotPage() {
   // Start Pairing
   const handleStartPairing = async () => {
     setIsWalletLoading(true);
+    setWalletError(null);
     try {
       const res = await apiFetch("/api/wallet/session", { method: "POST" });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.pairing) {
+        setWallet((prev) => ({
+          ...prev,
+          status: "PAIRING",
+          isDevelopmentProvider: data.isDevelopmentMode,
+          pairingData: data.pairing,
+        }));
+      } else {
+        setWalletError(data.error || "Failed to initiate pairing session. Please try again.");
+      }
+    } catch {
+      setWalletError("Network connection error. Please try again.");
+    } finally {
+      setIsWalletLoading(false);
+    }
+  };
+
+  // Confirm / Complete Pairing
+  const handleConfirmPairing = async () => {
+    if (!wallet.pairingData?.qrCodeId) return;
+    setIsWalletLoading(true);
+    setWalletError(null);
+    try {
+      const res = await apiFetch("/api/wallet/poll", {
+        method: "POST",
+        body: JSON.stringify({ qrCodeId: wallet.pairingData.qrCodeId }),
+      });
       if (res.ok) {
         const data = await res.json();
-        if (data.pairing) {
-          setWallet((prev) => ({
-            ...prev,
-            status: "PAIRING",
-            isDevelopmentProvider: data.isDevelopmentMode,
-            pairingData: data.pairing,
-          }));
+        if (data.status === "CONNECTED" && data.wallet) {
+          setWallet(data.wallet);
+          setIsWalletModalOpen(false);
+          fetchActivities();
+          fetchNFTs();
+        } else {
+          setWalletError(data.message || "Pairing in progress. Please approve on mobile or try again.");
         }
       }
+    } catch {
+      setWalletError("Unable to confirm pairing.");
     } finally {
       setIsWalletLoading(false);
     }
@@ -940,11 +972,16 @@ export default function MintPilotPage() {
       {/* Wallet Pairing & Session Modal */}
       <WalletModal
         isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
+        onClose={() => {
+          setIsWalletModalOpen(false);
+          setWalletError(null);
+        }}
         wallet={wallet}
         onStartPairing={handleStartPairing}
+        onConfirmPairing={handleConfirmPairing}
         onDisconnect={handleDisconnect}
         isLoading={isWalletLoading}
+        error={walletError}
       />
 
       {/* Activity Drawer */}

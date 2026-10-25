@@ -3,6 +3,7 @@ import { parseAbi } from "viem";
 import { exec } from "child_process";
 import { promisify } from "util";
 import path from "path";
+import fs from "fs";
 
 const execAsync = promisify(exec);
 
@@ -38,7 +39,8 @@ export async function resolveRegisteredAgentId(address: string): Promise<string>
   // 2. Query BAW CLI tx-history to find the Agent ID token ID
   try {
     const bawPath = path.resolve(process.cwd(), "node_modules", "@binance", "agentic-wallet", "dist", "index.js");
-    const { stdout } = await execAsync(`node "${bawPath}" wallet tx-history --json`, { timeout: 8000 });
+    if (fs.existsSync(bawPath)) {
+      const { stdout } = await execAsync(`node "${bawPath}" wallet tx-history --json`, { timeout: 8000 });
     if (stdout) {
       const jsonStart = stdout.indexOf("{");
       if (jsonStart !== -1) {
@@ -79,7 +81,8 @@ export async function resolveRegisteredAgentId(address: string): Promise<string>
         }
       }
     }
-  } catch (err) {
+  }
+} catch (err) {
     // Non-blocking fallback
     console.warn("Could not query BAW tx-history for agent ID:", err);
   }
